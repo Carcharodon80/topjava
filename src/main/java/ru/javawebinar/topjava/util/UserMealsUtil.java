@@ -8,6 +8,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.Month;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static ru.javawebinar.topjava.util.TimeUtil.isBetweenHalfOpen;
 
@@ -26,7 +27,8 @@ public class UserMealsUtil {
         List<UserMealWithExcess> mealsTo = filteredByCycles(meals, LocalTime.of(7, 0), LocalTime.of(12, 0), 2000);
         mealsTo.forEach(System.out::println);
 
-//        System.out.println(filteredByStreams(meals, LocalTime.of(7, 0), LocalTime.of(12, 0), 2000));
+        System.out.println();
+        filteredByStreams(meals, LocalTime.of(7, 0), LocalTime.of(12, 0), 2000).forEach(System.out::println);
     }
 
     /**
@@ -40,7 +42,7 @@ public class UserMealsUtil {
      * @param endTime        конец временного диапазона (исключительно)
      * @param caloriesPerDay максимально допустимое количество калорий в день
      * @return список объектов {@code UserMealWithExcess}, представляющих приемы пищи в заданном
-     *         временном интервале с указанием, превышена ли суточная норма калорий
+     * временном интервале с указанием, превышена ли суточная норма калорий
      */
     public static List<UserMealWithExcess> filteredByCycles(List<UserMeal> meals, LocalTime startTime, LocalTime endTime, int caloriesPerDay) {
         Map<LocalDate, Integer> caloriesByDateMap = new HashMap<>();
@@ -61,8 +63,32 @@ public class UserMealsUtil {
         return userMealWithExcessList;
     }
 
+    /**
+     * Альтернативная реализация метода {@link #filteredByCycles(List, LocalTime, LocalTime, int)},
+     * использующая Stream API для фильтрации и обработки данных.
+     *
+     * @param meals          список объектов {@code UserMeal}, которые нужно отфильтровать
+     * @param startTime      начало временного диапазона (включительно)
+     * @param endTime        конец временного диапазона (исключительно)
+     * @param caloriesPerDay максимально допустимое количество калорий в день
+     * @return список объектов {@code UserMealWithExcess}, представляющих приемы пищи в заданном
+     * временном интервале с указанием, превышена ли суточная норма калорий
+     */
     public static List<UserMealWithExcess> filteredByStreams(List<UserMeal> meals, LocalTime startTime, LocalTime endTime, int caloriesPerDay) {
-        // TODO Implement by streams
-        return null;
+        Map<LocalDate, Integer> caloriesByDateMap = meals.stream().collect(Collectors.toMap(
+                userMeal -> userMeal.getDateTime().toLocalDate(),
+                UserMeal::getCalories,
+                Integer::sum
+        ));
+        List<UserMealWithExcess> userMealWithExcessList;
+        userMealWithExcessList = meals.stream()
+                .filter(userMeal -> isBetweenHalfOpen(userMeal.getDateTime().toLocalTime(), startTime, endTime))
+                .map(userMeal -> new UserMealWithExcess(userMeal.getDateTime(),
+                        userMeal.getDescription(),
+                        userMeal.getCalories(),
+                        caloriesByDateMap.get(userMeal.getDateTime().toLocalDate()) > caloriesPerDay))
+                .toList();
+
+        return userMealWithExcessList;
     }
 }
