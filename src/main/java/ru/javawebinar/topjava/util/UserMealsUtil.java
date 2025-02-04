@@ -29,6 +29,9 @@ public class UserMealsUtil {
 
         System.out.println();
         filteredByStreams(meals, LocalTime.of(7, 0), LocalTime.of(12, 0), 2000).forEach(System.out::println);
+
+        System.out.println();
+        filteredByCyclesOptional2(meals, LocalTime.of(7, 0), LocalTime.of(12, 0), 2000).forEach(System.out::println);
     }
 
     /**
@@ -80,15 +83,64 @@ public class UserMealsUtil {
                 UserMeal::getCalories,
                 Integer::sum
         ));
-        List<UserMealWithExcess> userMealWithExcessList;
-        userMealWithExcessList = meals.stream()
+        return meals.stream()
                 .filter(userMeal -> isBetweenHalfOpen(userMeal.getDateTime().toLocalTime(), startTime, endTime))
                 .map(userMeal -> new UserMealWithExcess(userMeal.getDateTime(),
                         userMeal.getDescription(),
                         userMeal.getCalories(),
                         caloriesByDateMap.get(userMeal.getDateTime().toLocalDate()) > caloriesPerDay))
-                .toList();
+                .collect(Collectors.toList());
+    }
 
-        return userMealWithExcessList;
+    /**
+     * Альтернативная реализация метода {@link #filteredByCycles(List, LocalTime, LocalTime, int)},
+     * использующая метод рекурсии.
+     *
+     * @param meals          список приёмов пищи (UserMeal)
+     * @param startTime      начальное время для фильтрации
+     * @param endTime        конечное время для фильтрации
+     * @param caloriesPerDay максимальное допустимое количество калорий в день
+     * @return список объектов UserMealWithExcess, содержащий приёмы пищи, соответствующие условиям
+     */
+    public static List<UserMealWithExcess> filteredByCyclesOptional2(List<UserMeal> meals, LocalTime startTime, LocalTime endTime, int caloriesPerDay) {
+        List<UserMealWithExcess> result = new ArrayList<>();
+        Map<LocalDate, Integer> caloriesByDateMap = new HashMap<>();
+        int index = 0;
+        return filteredWithRecursion(meals, startTime, endTime, caloriesPerDay, result, caloriesByDateMap, index);
+    }
+
+    /**
+     * Рекурсивный метод, который расчитывает превышение калорий в день, а затем добавляет приемы пищи (с учетом превышения калорий),
+     * попадающие в заданный временной интервал, в список {@code UserMealWithExcess}.
+     *
+     * @param meals             список приёмов пищи (UserMeal)
+     * @param startTime         начальное время для фильтрации
+     * @param endTime           конечное время для фильтрации
+     * @param caloriesPerDay    максимальное допустимое количество калорий в день
+     * @param result            список для сохранения результата
+     * @param caloriesByDateMap карта с общей калорийностью по датам
+     * @param index             текущий индекс для обработки (рекурсивный шаг)
+     * @return список объектов UserMealWithExcess, соответствующий условиям фильтрации
+     */
+    private static List<UserMealWithExcess> filteredWithRecursion(List<UserMeal> meals, LocalTime startTime, LocalTime endTime,
+                                                                  int caloriesPerDay, List<UserMealWithExcess> result,
+                                                                  Map<LocalDate, Integer> caloriesByDateMap, int index) {
+        if (index >= meals.size()) {
+            return result;
+        }
+
+        UserMeal currentMeal = meals.get(index);
+        caloriesByDateMap.merge(currentMeal.getDateTime().toLocalDate(), currentMeal.getCalories(), Integer::sum);
+        filteredWithRecursion(meals, startTime, endTime, caloriesPerDay, result, caloriesByDateMap, index + 1);
+
+        if (isBetweenHalfOpen(currentMeal.getDateTime().toLocalTime(), startTime, endTime)) {
+            result.add(
+                    new UserMealWithExcess(
+                            currentMeal.getDateTime(),
+                            currentMeal.getDescription(),
+                            currentMeal.getCalories(),
+                            caloriesByDateMap.get(currentMeal.getDateTime().toLocalDate()) > caloriesPerDay));
+        }
+        return result;
     }
 }
