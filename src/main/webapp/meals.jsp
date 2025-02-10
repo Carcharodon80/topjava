@@ -1,10 +1,3 @@
-<%--
-  Created by IntelliJ IDEA.
-  User: Carcharodon
-  Date: 09.02.2025
-  Time: 1:37
-  To change this template use File | Settings | File Templates.
---%>
 <%@ page contentType="text/html;charset=UTF-8" %>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ taglib uri="http://java.sun.com/jsp/jstl/fmt" prefix="fmt" %>
@@ -16,13 +9,15 @@
 <body>
 <h3><a href="index.html">Home</a></h3>
 
-<h1>Список людей</h1>
+<h1>Meals</h1>
+<p><a href="meals?action=addMeal">Add Meal</a></p>
 <table>
     <thead>
     <tr>
         <th>Date</th>
         <th>Description</th>
         <th>Calories</th>
+        <th colspan="2">Action</th>
     </tr>
     </thead>
     <tbody>
@@ -35,6 +30,8 @@
             </td>
             <td>${meal.description}</td>
             <td>${meal.calories}</td>
+            <td><a href="meals?action=updateMeal&mealId=<c:out value="${meal.id}"/>">Update</a></td>
+            <td><a href="meals?action=deleteMeal&mealId=<c:out value="${meal.id}"/>">Delete</a></td>
         </tr>
     </c:forEach>
     </tbody>
