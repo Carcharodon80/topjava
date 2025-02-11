@@ -2,8 +2,8 @@ package ru.javawebinar.topjava.web;
 
 import org.slf4j.Logger;
 import ru.javawebinar.topjava.model.Meal;
-import ru.javawebinar.topjava.service.MealService;
-import ru.javawebinar.topjava.store.MealStoreMap;
+import ru.javawebinar.topjava.store.MealStore;
+import ru.javawebinar.topjava.store.MemMealStore;
 import ru.javawebinar.topjava.util.MealsUtil;
 
 import javax.servlet.ServletException;
@@ -13,74 +13,79 @@ import javax.servlet.http.HttpServletResponse;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 
 import static org.slf4j.LoggerFactory.getLogger;
 
 public class MealServlet extends HttpServlet {
     private static final Logger log = getLogger(MealServlet.class);
-    private final MealService mealService = new MealService(new MealStoreMap());
+    private final MealStore mealStore = new MemMealStore();
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         String action = req.getParameter("action");
 
         if (action == null) {
-            log.debug("showMeals");
-            req.setAttribute("meals", MealsUtil.fiteredByStreams(mealService.findAll(), MealsUtil.CALORIES_PER_DAY));
-            req.getRequestDispatcher("/meals.jsp").forward(req, resp);
-        } else if (action.equalsIgnoreCase("addMeal")) {
-            log.debug("addMeal");
-            req.getRequestDispatcher("/addMeal.jsp").forward(req, resp);
-        } else if (action.equalsIgnoreCase("editMeal")) {
-            //todo переделать на update
-            log.debug("addMeal");
-            req.getRequestDispatcher("/addMeal.jsp").forward(req, resp);
-        } else if (action.equalsIgnoreCase("deleteMeal")) {
-            log.debug("deleteMeal");
-            int mealId = Integer.parseInt(req.getParameter("mealId"));
-            mealService.deleteMeal(mealId);
-            log.debug("showMeals");
-            req.setAttribute("meals", MealsUtil.fiteredByStreams(mealService.findAll(), MealsUtil.CALORIES_PER_DAY));
-            req.getRequestDispatcher("/meals.jsp").forward(req, resp);
-        } else {
-            log.debug("showMeals");
-            req.setAttribute("meals", MealsUtil.fiteredByStreams(mealService.findAll(), MealsUtil.CALORIES_PER_DAY));
-            req.getRequestDispatcher("/meals.jsp").forward(req, resp);
+            action = "default";
+        }
+
+        switch (action.toLowerCase()) {
+            case "add":
+                log.debug("Add new meal");
+                req.getRequestDispatcher("/addMeal.jsp").forward(req, resp);
+                break;
+
+            case "edit":
+                log.debug("Edit existing meal");
+                int id = Integer.parseInt(req.getParameter("mealId"));
+                req.setAttribute("meal", mealStore.findById(id));
+                req.getRequestDispatcher("/addMeal.jsp").forward(req, resp);
+                break;
+
+            case "delete":
+                log.debug("Delete meal");
+                try {
+                    int mealId = Integer.parseInt(req.getParameter("mealId"));
+                    mealStore.delete(mealId);
+                } catch (NumberFormatException e) {
+                    log.error("Invalid mealId for delete operation");
+                }
+                resp.sendRedirect(req.getContextPath() + "/meals");
+                break;
+
+            case "default":
+                log.debug("Show meals");
+                req.setAttribute("meals", MealsUtil.filteredByStreams(mealStore.findAll(), MealsUtil.CALORIES_PER_DAY));
+                req.getRequestDispatcher("/meals.jsp").forward(req, resp);
+                break;
+
+            default:
+                log.warn("Unknown action: " + action);
+                req.setAttribute("meals", MealsUtil.filteredByStreams(mealStore.findAll(), MealsUtil.CALORIES_PER_DAY));
+                req.getRequestDispatcher("/meals.jsp").forward(req, resp);
+                break;
         }
     }
 
     @Override
-    protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+    protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
         req.setCharacterEncoding("UTF-8");
 
+        String idStr = req.getParameter("id");
         String dateTimeStr = req.getParameter("dateTime");
         String description = req.getParameter("description");
         String caloriesStr = req.getParameter("calories");
 
-        DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm");
-        LocalDateTime dateTime = null;
-        int calories = 0;
+        LocalDateTime dateTime = LocalDateTime.parse(dateTimeStr);
+        int calories = Integer.parseInt(caloriesStr);
+        Meal meal = new Meal(dateTime, description, calories);
 
-        try {
-            if (dateTimeStr != null && !dateTimeStr.isEmpty()) {
-                dateTime = LocalDateTime.parse(dateTimeStr, dateTimeFormatter);
-            }
-            if (caloriesStr != null && !caloriesStr.isEmpty()) {
-                calories = Integer.parseInt(caloriesStr);
-            }
-        } catch (Exception e) {
-            log.error("Invalid input data");
-            log.debug("showMeals");
-            req.setAttribute("meals", MealsUtil.fiteredByStreams(mealService.findAll(), MealsUtil.CALORIES_PER_DAY));
-            req.getRequestDispatcher("/meals.jsp").forward(req, resp);
-            return;
+        if (idStr != null) {
+            int id = Integer.parseInt(idStr);
+            meal.setId(id);
+            mealStore.update(meal);
+        } else {
+            mealStore.add(meal);
         }
-
-        Meal meal = new Meal(0, dateTime, description, calories);
-        mealService.addMeal(meal);
-        log.debug("showMeals");
-        req.setAttribute("meals", MealsUtil.fiteredByStreams(mealService.findAll(), MealsUtil.CALORIES_PER_DAY));
-        req.getRequestDispatcher("/meals.jsp").forward(req, resp);
+        resp.sendRedirect(req.getContextPath() + "/meals");
     }
 }
