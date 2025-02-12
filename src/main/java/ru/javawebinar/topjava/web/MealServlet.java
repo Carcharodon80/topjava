@@ -18,7 +18,12 @@ import static org.slf4j.LoggerFactory.getLogger;
 
 public class MealServlet extends HttpServlet {
     private static final Logger log = getLogger(MealServlet.class);
-    private final MealStore mealStore = new MemMealStore();
+    private MealStore mealStore;
+
+    @Override
+    public void init() {
+        this.mealStore = new MemMealStore();
+    }
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
@@ -43,12 +48,8 @@ public class MealServlet extends HttpServlet {
 
             case "delete":
                 log.debug("Delete meal");
-                try {
-                    int mealId = Integer.parseInt(req.getParameter("mealId"));
-                    mealStore.delete(mealId);
-                } catch (NumberFormatException e) {
-                    log.error("Invalid mealId for delete operation");
-                }
+                int mealId = Integer.parseInt(req.getParameter("mealId"));
+                mealStore.delete(mealId);
                 resp.sendRedirect(req.getContextPath() + "/meals");
                 break;
 
@@ -68,6 +69,7 @@ public class MealServlet extends HttpServlet {
 
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
+        log.debug("Show Add/Edit form.");
         req.setCharacterEncoding("UTF-8");
 
         String idStr = req.getParameter("id");

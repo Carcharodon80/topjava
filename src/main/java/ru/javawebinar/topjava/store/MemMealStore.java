@@ -30,7 +30,8 @@ public class MemMealStore implements MealStore {
 
     public Meal add(Meal meal) {
         meal.setId(id.incrementAndGet());
-        return meals.put(meal.getId(), meal);
+        meals.put(meal.getId(), meal);
+        return meal;
     }
 
     public Meal findById(int id) {
@@ -38,7 +39,8 @@ public class MemMealStore implements MealStore {
     }
 
     public Meal update(Meal meal) {
-        return meals.replace(meal.getId(), meal);
+        meals.replace(meal.getId(), meal);
+        return meal;
     }
 
     public void delete(int id) {
