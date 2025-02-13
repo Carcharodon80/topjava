@@ -69,7 +69,7 @@ public class MealServlet extends HttpServlet {
 
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-        log.debug("Show Add/Edit form.");
+        log.debug("Add/Edit meal.");
         req.setCharacterEncoding("UTF-8");
 
         String idStr = req.getParameter("id");

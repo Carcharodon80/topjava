@@ -39,8 +39,11 @@ public class MemMealStore implements MealStore {
     }
 
     public Meal update(Meal meal) {
-        meals.replace(meal.getId(), meal);
-        return meal;
+        if (meals.containsKey(meal.getId())) {
+            meals.replace(meal.getId(), meal);
+            return meal;
+        }
+        return null;
     }
 
     public void delete(int id) {
