@@ -5,11 +5,11 @@ import org.springframework.context.support.ClassPathXmlApplicationContext;
 import ru.javawebinar.topjava.model.Meal;
 import ru.javawebinar.topjava.model.Role;
 import ru.javawebinar.topjava.model.User;
-import ru.javawebinar.topjava.repository.inmemory.InMemoryMealRepository;
 import ru.javawebinar.topjava.web.meal.MealRestController;
 import ru.javawebinar.topjava.web.user.AdminRestController;
 
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.Arrays;
 
 public class SpringMain {
@@ -20,9 +20,14 @@ public class SpringMain {
             AdminRestController adminUserController = appCtx.getBean(AdminRestController.class);
             adminUserController.create(new User(null, "userName", "email@mail.ru", "password", Role.ADMIN));
             MealRestController mealRestController = appCtx.getBean(MealRestController.class);
-            mealRestController.create(new Meal(LocalDateTime.now(), "Test Dinner", 100, 1));
-            mealRestController.delete(3);
-            mealRestController.getAll();
+            mealRestController.create(new Meal(LocalDateTime.now(), "Test Dinner", 100, 1), 1);
+            mealRestController.delete(3, 1);
+            mealRestController.getAll(1);
+            System.out.println(mealRestController.getAllWithFilter(1,
+                    null,
+                    null,
+                    LocalTime.of(0, 0),
+                    LocalTime.of(15, 0)));
         }
     }
 }
