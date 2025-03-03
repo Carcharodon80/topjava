@@ -1,6 +1,5 @@
 package ru.javawebinar.topjava.service;
 
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -9,11 +8,14 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.jdbc.Sql;
 import org.springframework.test.context.jdbc.SqlConfig;
 import org.springframework.test.context.junit4.SpringRunner;
+import ru.javawebinar.topjava.UserTestData;
 import ru.javawebinar.topjava.model.Meal;
 import ru.javawebinar.topjava.util.exception.NotFoundException;
 
 import java.time.LocalDate;
 import java.time.Month;
+import java.util.*;
+import java.util.stream.Collectors;
 
 import static org.junit.Assert.assertThrows;
 import static ru.javawebinar.topjava.MealTestData.*;
@@ -26,7 +28,6 @@ import static ru.javawebinar.topjava.UserTestData.USER_ID;
 })
 @RunWith(SpringRunner.class)
 @Sql(scripts = "classpath:db/populateDB.sql", config = @SqlConfig(encoding = "UTF-8"))
-@Ignore
 public class MealServiceTest {
 
     @Autowired
@@ -50,7 +51,9 @@ public class MealServiceTest {
 
     @Test
     public void create() {
-        Meal created = service.create(getNew(), USER_ID);
+        Meal meal = getNew();
+        meal.setUser(UserTestData.user);
+        Meal created = service.create(meal, USER_ID);
         int newId = created.id();
         Meal newMeal = getNew();
         newMeal.setId(newId);
@@ -95,7 +98,11 @@ public class MealServiceTest {
 
     @Test
     public void getAll() {
-        MEAL_MATCHER.assertMatch(service.getAll(USER_ID), meals);
+        List<Meal> allMeals = service.getAll(USER_ID);
+        List<Meal> sortedMeals = mealsByUser.stream()
+                .sorted(Comparator.comparing(Meal::getDateTime).reversed())
+                .collect(Collectors.toList());
+        MEAL_MATCHER.assertMatch(allMeals, sortedMeals);
     }
 
     @Test
@@ -108,6 +115,6 @@ public class MealServiceTest {
 
     @Test
     public void getBetweenWithNullDates() {
-        MEAL_MATCHER.assertMatch(service.getBetweenInclusive(null, null, USER_ID), meals);
+        MEAL_MATCHER.assertMatch(service.getBetweenInclusive(null, null, USER_ID), mealsByUser);
     }
 }
