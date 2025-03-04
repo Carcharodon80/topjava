@@ -1,21 +1,28 @@
 package ru.javawebinar.topjava.service;
 
+import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExternalResource;
+import org.junit.rules.TestRule;
 import org.junit.runner.RunWith;
+import org.junit.runners.model.Statement;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.jdbc.Sql;
 import org.springframework.test.context.jdbc.SqlConfig;
 import org.springframework.test.context.junit4.SpringRunner;
-import ru.javawebinar.topjava.UserTestData;
 import ru.javawebinar.topjava.model.Meal;
 import ru.javawebinar.topjava.util.exception.NotFoundException;
 
 import java.time.LocalDate;
 import java.time.Month;
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import static org.junit.Assert.assertThrows;
 import static ru.javawebinar.topjava.MealTestData.*;
@@ -32,6 +39,33 @@ public class MealServiceTest {
 
     @Autowired
     private MealService service;
+
+    private static final Map<String, Long> durationTests = new HashMap<>();
+    private static final Logger logger = LoggerFactory.getLogger(MealServiceTest.class);
+
+    @Rule
+    public TestRule timeLogger = (base, description) -> new Statement() {
+        @Override
+        public void evaluate() throws Throwable {
+            long start = System.currentTimeMillis();
+            try {
+                base.evaluate();
+            } finally {
+                long duration = System.currentTimeMillis() - start;
+                durationTests.put(description.getMethodName(), duration);
+                logger.info(description.getMethodName() + " выполнен за " + duration + " мс");
+            }
+        }
+    };
+
+    @ClassRule
+    public static ExternalResource summaryLogger = new ExternalResource() {
+        @Override
+        protected void after() {
+            logger.info("---Время выполнения тестов---");
+            durationTests.forEach((testName, duration) -> logger.info(testName + " - " + duration + " мс"));
+        }
+    };
 
     @Test
     public void delete() {
@@ -51,14 +85,11 @@ public class MealServiceTest {
 
     @Test
     public void create() {
-        Meal meal = getNew();
-        meal.setUser(UserTestData.user);
-        Meal created = service.create(meal, USER_ID);
-        int newId = created.id();
         Meal newMeal = getNew();
-        newMeal.setId(newId);
+        Meal created = service.create(newMeal, USER_ID);
+        newMeal.setId(created.id());
         MEAL_MATCHER.assertMatch(created, newMeal);
-        MEAL_MATCHER.assertMatch(service.get(newId, USER_ID), newMeal);
+        MEAL_MATCHER.assertMatch(service.get(created.id(), USER_ID), newMeal);
     }
 
     @Test
@@ -99,10 +130,7 @@ public class MealServiceTest {
     @Test
     public void getAll() {
         List<Meal> allMeals = service.getAll(USER_ID);
-        List<Meal> sortedMeals = mealsByUser.stream()
-                .sorted(Comparator.comparing(Meal::getDateTime).reversed())
-                .collect(Collectors.toList());
-        MEAL_MATCHER.assertMatch(allMeals, sortedMeals);
+        MEAL_MATCHER.assertMatch(allMeals, userMeals);
     }
 
     @Test
@@ -115,6 +143,6 @@ public class MealServiceTest {
 
     @Test
     public void getBetweenWithNullDates() {
-        MEAL_MATCHER.assertMatch(service.getBetweenInclusive(null, null, USER_ID), mealsByUser);
+        MEAL_MATCHER.assertMatch(service.getBetweenInclusive(null, null, USER_ID), userMeals);
     }
 }

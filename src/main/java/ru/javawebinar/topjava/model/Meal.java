@@ -1,19 +1,17 @@
 package ru.javawebinar.topjava.model;
 
 import javax.persistence.*;
-import javax.validation.constraints.NotNull;
+import javax.validation.constraints.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 
 @NamedQueries({
-        @NamedQuery(name = Meal.All_SORTED, query = "SELECT m FROM Meal m LEFT JOIN FETCH m.user "
-                + "WHERE m.user.id=:uId ORDER BY m.dateTime DESC"),
-        @NamedQuery(name = Meal.GET_BY_ID, query = "SELECT m FROM Meal m LEFT JOIN FETCH m.user "
-                + "WHERE m.id=:id AND m.user.id=:uId"),
-        @NamedQuery(name = Meal.GET_BETWEEN_HALF_OPEN, query = "SELECT m FROM Meal m LEFT JOIN FETCH m.user "
-                + "WHERE m.user.id=:uId AND m.dateTime >= :startDateTime AND m.dateTime < :endDateTime "
-                + "ORDER BY m.dateTime DESC"),
+        @NamedQuery(name = Meal.All_SORTED, query = "SELECT m FROM Meal m WHERE m.user.id=:uId ORDER BY m.dateTime DESC"),
+        @NamedQuery(name = Meal.GET_BY_ID, query = "SELECT m FROM Meal m WHERE m.id=:id AND m.user.id=:uId"),
+        @NamedQuery(name = Meal.GET_BETWEEN_HALF_OPEN, query = "SELECT m FROM Meal m "
+                + "WHERE m.user.id=:uId AND m.dateTime >= :startDateTime "
+                + "AND m.dateTime < :endDateTime ORDER BY m.dateTime DESC"),
         @NamedQuery(name = Meal.DELETE, query = "DELETE FROM Meal m WHERE m.id=:id AND m.user.id=:uId")
 })
 @Entity
@@ -25,20 +23,23 @@ public class Meal extends AbstractBaseEntity {
     public static final String GET_BETWEEN_HALF_OPEN = "Meal.getBetweenHalfOpen";
     public static final String DELETE = "Meal.delete";
 
-    @Column(name = "date_time", nullable = false, columnDefinition = "timestamp")
+    @Column(name = "date_time", nullable = false)
     @NotNull
     private LocalDateTime dateTime;
 
     @Column(name = "description", nullable = false)
     @NotNull
+    @NotBlank
+    @Size(min = 2, max = 120)
     private String description;
 
     @Column(name = "calories", nullable = false)
-    @NotNull
+    @Min(10)
+    @Max(5000)
     private int calories;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", referencedColumnName = "id", nullable = false)
+    @JoinColumn(name = "user_id", nullable = false)
     @NotNull
     private User user;
 
